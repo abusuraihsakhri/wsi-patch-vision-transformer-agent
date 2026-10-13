@@ -1,190 +1,71 @@
 # WSI Patch Vision Transformer Agent
 
-> **Domain:** Digital Pathology & Quantitative Histopathology  
-> **Reference Guidelines & Standards:** `College of American Pathologists (CAP) Synoptic Protocols & DICOM WSI`
+A Python CLI, FastAPI service, and browser demonstration for **deterministic screening of synthetic WSI workflow metrics**. Despite the repository name, the current code **does not** read whole-slide images, tile image data, extract DINO embeddings, run a Vision Transformer, or implement a clinically validated pathology model.
 
-<div align="center">
+The worker rules are configurable *demonstration thresholds* in source code, **not** thresholds specified by CAP or DICOM and **not appropriate for clinical decisions**.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi&logoColor=white)
-![Audit Trail](https://img.shields.io/badge/Audit-HMAC--SHA256_Tamper--Evident-brightgreen.svg)
-![Zero-PHI Guard](https://img.shields.io/badge/Guard-Zero--PHI_Outbound-blue.svg)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)
+## Browser interface
 
-</div>
+Open `web/index.html` through an HTTP server or the FastAPI service. The browser evaluation runs entirely in JavaScript without Python or a backend. It checks a primary metric above 25, a secondary metric above 12, critical flags, and selected status keywords. Results can be exported to JSON. The browser demonstration **does not create cryptographic audit signatures**.
 
----
+The interface also offers a connected API mode when served by the Python application. In that mode, the request is sent to the same-origin FastAPI endpoint and the Python audit service performs the evaluation and signs an **in-memory** audit record.
 
-## 📖 What It Does
+No model weights, image data, WSI input, or medical diagnoses are supported.
 
-WSI Patch Vision Transformer Agent is an enterprise-grade analytical platform for digital pathology workflows. It processes Whole Slide Imaging (WSI) task payloads through a multi-agent consensus system, evaluating metrics against clinical reference standards and generating cryptographically signed audit trails.
+## Install and run
 
-The system employs specialized worker agents that independently evaluate task parameters, then aggregates their findings into a consensus dossier with urgency classification and actionable remediation steps.
-
----
-
-## ⚙️ Key Capabilities & Algorithmic Modules
-
-- **Deterministic Calculation Engine**: Strict compliance with CAP Cancer Protocols and DICOM WSI PS3.16 reference formulations and thresholds.
-- **Risk & Urgency Classification**: Multi-tier categorization (ROUTINE, ELEVATED_RISK, CRITICAL_STAT_PANIC) with automated clinical/operational action recommendations.
-- **Validation & Guardrails**: Rigorous input bounds checking, NaN/Inf rejection, and anomaly detection.
-- **Multi-Agent Consensus**: Three specialized workers (InvariantQC, SafetyEscalation, ProtocolConformance) provide independent evaluations.
-
----
-
-## 🚀 Installation
+Requires Python 3.9 or newer. For the documented server and test workflows:
 
 ```bash
-# Clone the repository
 git clone https://github.com/abusuraihsakhri/wsi-patch-vision-transformer-agent.git
 cd wsi-patch-vision-transformer-agent
-
-# Install dependencies
-pip install fastapi uvicorn pydantic pytest
-
-# Optional: Set audit secret key for persistent audit trails
-export AUDIT_SECRET_KEY="your-secure-key-here"
+python -m pip install -e ".[api,test]"
+python -m pytest -v
+wsi-patch-vision-transformer-agent audit --task-id DEMO-001 --target SPEC-001 --primary 29.4 --secondary 14.8
+wsi-patch-vision-transformer-agent batch -i sample.csv -o results.csv
+wsi-patch-vision-transformer-agent verify-audit
+wsi-patch-vision-transformer-agent serve --host 127.0.0.1 --port 8000
 ```
 
----
-
-## 💻 CLI Quickstart & Usage
-
-### 1. Single Task Evaluation
-```bash
-python cli.py audit --task-id TASK-001 --target KEY-01 --primary 28.5 --secondary 14.2 --critical --status DISCORDANT
-```
-
-### 2. Interactive Chat Query
-```bash
-python cli.py chat "What is the system status?"
-```
-
-### 3. Batch CSV Processing
-```bash
-python cli.py batch -i sample.csv -o results.csv
-```
-
-### 4. Verify Audit Trail Integrity
-```bash
-python cli.py verify-audit
-```
-
-### 5. Launch REST API Server
-```bash
-python cli.py serve --host 127.0.0.1 --port 8000
-```
-
-### Parameter Reference
-| Parameter | Description | Default |
-|:----------|:------------|:--------|
-| `--task-id` | Unique task/case identifier | TASK-2026-001 |
-| `--target` | Entity or specimen target identifier | KEY-TARGET-01 |
-| `--primary` | Primary domain measurement (float) | 28.5 |
-| `--secondary` | Secondary kinetic/confidence score (float) | 14.2 |
-| `--critical` | Emergency escalation flag | False |
-| `--status` | Status code or phenotype descriptor | DISCORDANT |
-
-### Input Data Schema
-
-| Field | Description | Requirement |
-|:------|:------------|:------------|
-| `task_id` | Unique task/case identifier | Required |
-| `target_identifier` | Entity or specimen target identifier | Required |
-| `primary_metric` | Primary domain measurement (finite float) | Required |
-| `secondary_metric` | Secondary kinetic/confidence score | Optional (default: 0.0) |
-| `is_critical_flag` | Emergency escalation trigger | Optional (default: false) |
-| `status_descriptor` | Status code or phenotype descriptor | Optional (default: "NOMINAL") |
-
----
-
-## 🛡️ Security & Enterprise Architecture
-
-* **Zero-PHI Outbound Interceptor:** Active regex inspection blocking SSNs, MRNs, phone numbers, email addresses, and patient identifiers.
-* **Tamper-Evident HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation and state transition.
-* **Secure Key Management:** Audit signing key sourced from `AUDIT_SECRET_KEY` environment variable with secure random fallback.
-* **Input Validation:** Pydantic v2 validators reject NaN, Inf, and empty string inputs.
-* **Air-Gapped LLM Reasoning Adapter:** Agnostic integration for local Ollama instances (`llama3`, `mistral`), Claude 3.5 Sonnet, GPT-4o, and deterministic test mocks.
-* **FastAPI & Prometheus Telemetry:** Exposes OpenAPI 3.1 REST endpoints and operational Prometheus metrics (`/metrics`).
-
----
-
-## 🧪 Testing & Verification
-
-Run the automated test suite:
+Open `http://127.0.0.1:8000/` for the web interface or `http://127.0.0.1:8000/docs` for FastAPI's interactive API documentation. For the standalone browser demonstration:
 
 ```bash
-pytest -v
+python -m http.server 8080 --directory web
 ```
 
-Execute high-throughput batch simulation benchmarks:
+Then open `http://127.0.0.1:8080/`. The installed command invokes the primary `cli.py`; the alternative CLI remains available as `python -m patho_vit_agent.cli`.
+
+## API and input
+
+- `POST /api/audit`: accepts `task_id`, `target_identifier`, `primary_metric` (required), plus optional `secondary_metric`, `status_descriptor`, `is_critical_flag`, and `attributes`.
+- `GET /health`: service health.
+- `GET /metrics`: JSON operational summary (not Prometheus exposition).
+- `GET /api/audit/logs`: the in-memory audit chain and its HMAC integrity check.
+- `POST /api/chat`: deterministic mock response; no external LLM provider is connected.
+
+CSV batch processing expects the columns in `sample.csv`. Boolean values accept `true/false`, `yes/no`, or `1/0` (case-insensitive). Unsupported booleans are rejected per row. Spreadsheet-formula-like strings are escaped on CSV export.
+
+The Python and browser rule sets have corresponding regression tests, but they are separate implementations.
+
+## Security and privacy
+
+Use **synthetic identifiers only**. The pattern-matching guard catches some common identifiers but **does not fully detect or de-identify protected health information**. No HIPAA compliance or clinical approval is claimed. The service has **no authentication or authorization**; keep it bound to loopback or behind appropriate controls. The audit trail is memory-only and disappears on restart. Set `AUDIT_SECRET_KEY` to a strong private value for consistent HMAC signing across processes; without it, a new random ephemeral key is generated. Never commit this key.
 
 ```bash
-python simulator.py 1000
+export AUDIT_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
+docker compose up --build
 ```
 
-### Test Coverage
-- PHI guard enforcement
-- Specialized worker evaluations
-- Supervisor consensus and audit trail
-- Input validation (NaN, Inf, empty strings)
-- Batch file error handling
-- Audit trail integrity verification
+Docker Compose binds port 8000 to the host's loopback interface by default. The web-only GitHub Pages build is static and executes **no Python backend** or audit HMAC signing.
 
----
+## Testing and technology
 
-## 🐳 Container Deployment
+- Python 3.10–3.12 are tested in GitHub Actions, using pytest, FastAPI, Pydantic v2, and the standard-library CSV/HMAC modules.
+- Browser evaluator uses native ES modules, standard JavaScript, and HTML/CSS; no Pyodide runtime is needed.
+- Run `node --test tests/test_web.mjs` for browser business-logic tests (Node 22).
+- Browser compatibility: current evergreen browsers supporting JavaScript modules and Blob downloads.
+- The codebase includes a separate legacy `patho_vit_agent` orchestration flow and generalized enrichment demonstrations, retained for compatibility.
 
-```bash
-docker build -t wsi-patch-vision-transformer-agent .
-docker run -p 8000:8000 -e AUDIT_SECRET_KEY=your-secure-key wsi-patch-vision-transformer-agent
-```
+## License
 
-Or using Docker Compose:
-
-```bash
-docker-compose up -d
-```
-
----
-
-## 📁 Project Structure
-
-```
-wsi-patch-vision-transformer-agent/
-├── agents/                    # Core multi-agent system
-│   ├── __init__.py           # Package version
-│   ├── api.py                # FastAPI REST endpoints
-│   ├── base.py               # Security, PHI guard, audit trail
-│   ├── learning.py           # Bayesian calibration engine
-│   ├── llm_factory.py        # LLM provider factory
-│   ├── metrics.py            # Prometheus metrics collector
-│   ├── models.py             # Pydantic v2 data schemas
-│   ├── streamer.py           # WebSocket telemetry broadcaster
-│   ├── supervisor.py         # Master orchestrator
-│   └── workers.py            # Specialized worker agents
-├── patho_vit_agent/          # PathoViT frontier module
-│   ├── agents.py             # Sub-agent implementations
-│   ├── cli.py                # Alternative CLI
-│   ├── engine.py             # Core algorithmic engine
-│   ├── models.py             # Data models
-│   └── server.py             # FastAPI server factory
-├── tests/                    # Pytest test suite
-├── web/                      # Web interface
-├── cli.py                    # Main CLI entry point
-├── enrichment.py             # Enrichment feature engines
-├── simulator.py              # High-throughput simulator
-├── sample.csv                # Sample batch input
-├── sample_payload.json       # Sample API payload
-├── benchmark_dataset.json    # Golden benchmark test cases
-├── pyproject.toml            # Project configuration
-├── Dockerfile                # Container build
-└── docker-compose.yml        # Container orchestration
-```
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).
