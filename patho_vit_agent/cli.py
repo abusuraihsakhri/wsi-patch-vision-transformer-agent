@@ -7,6 +7,7 @@ import json
 import sys
 from .models import FrontierPayload
 from .agents import PathoViTCoordinator
+from agents.csv_utils import parse_csv_boolean, escape_csv_formula
 
 coordinator = PathoViTCoordinator()
 
@@ -84,7 +85,7 @@ def main(argv=None):
             print(f"Error: Failed to parse CSV file: {e}", file=sys.stderr)
             return 1
 
-        out_fields = fieldnames + ["overall_status", "total_alerts", "critical_count", "consensus_summary"]
+        out_fields = list(dict.fromkeys(fieldnames + ["overall_status", "total_alerts", "critical_count", "consensus_summary"]))
         out_rows = []
         for r in rows:
             try:
@@ -94,13 +95,13 @@ def main(argv=None):
                     primary_metric=float(r.get("primary_metric", 15.0)),
                     secondary_metric=float(r.get("secondary_metric", 5.0)),
                     status_descriptor=r.get("status_descriptor", "NOMINAL"),
-                    is_critical_flag=bool(r.get("is_critical_flag", False)),
+                    is_critical_flag=parse_csv_boolean(r.get("is_critical_flag", False)),
                 )
             except (ValueError, TypeError) as e:
                 print(f"Warning: Skipping row with invalid data: {e}", file=sys.stderr)
                 continue
             dossier = coordinator.process(payload)
-            row_dict = dict(r)
+            row_dict = {key: escape_csv_formula(value) for key, value in r.items()}
             row_dict["overall_status"] = dossier["overall_status"]
             row_dict["total_alerts"] = dossier["total_alerts"]
             row_dict["critical_count"] = dossier["critical_count"]
